@@ -258,3 +258,23 @@ def main():
 
 main()
 
+def menu():
+    encourm=True
+    fps=0
+    while encourm:
+        t1=time.time()
+        pos=pygame.mouse.get_pos()
+        affmenu(pos,fps)
+        for event in pygame.event.get():
+            if event.type==QUIT: exit()
+            elif event.type==KEYDOWN:
+                if event.key==K_ESCAPE: encourm=False
+            elif event.type==MOUSEBUTTONUP:
+                for b in bts:
+                    if b!=None and b.collidepoint(pos):
+                        di=bts.index(b)
+                        if di==0: main()
+        tt=time.time()-t1
+        if tt!=0: fps=int(1./tt)
+
+
