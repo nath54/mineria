@@ -38,8 +38,8 @@ class Perso:
         #location
         self.px=x
         self.py=y
-        self.tx=tc
-        self.ty=tc*2
+        self.tx=tc*1
+        self.ty=tc*1.5
         self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
         #movement
         self.vitx=0.
@@ -74,6 +74,9 @@ class Perso:
         self.isposer=False
         self.debaction=0
         self.dcaseact=[0,0]
+        #inventaire
+        self.inventaire=[] # pour chaque élément : 0=l'id de l'élément , 1=le nombre de bloc de cet élément possédé
+        self.esb=0
     def bouger(self,aa):
         if aa=="Up" and time.time()-self.dkup>=self.t:
             self.dkup=time.time()
@@ -131,16 +134,28 @@ class Perso:
             #camera
             self.cam=[-self.px+tex/2,-self.py+tey/2]
             #actions
+            pos=pygame.mouse.get_pos()
+            xx=int((-self.cam[0]+pos[0])/mape.tc)
+            yy=int((-self.cam[1]+pos[1])/mape.tc)
             if self.isaction:
-                if self.action=="creuser":
-                    pos=pygame.mouse.get_pos()
-                    xx=int((-self.cam[0]+pos[0])/mape.tc)
-                    yy=int((-self.cam[1]+pos[1])/mape.tc)
+                if self.action=="creuser" and emape[ mape.mape[xx,yy] ][7]:
                     if self.dcaseact!=[xx,yy]:
                         self.debaction=time.time()
                         self.dcaseact=[xx,yy]
                     elif time.time()-self.debaction>=emape[mape.mape[xx,yy]][5]:
+                        ci=None
+                        for i in self.inventaire:
+                            if i[0]==mape.mape[xx,yy]: ci=self.inventaire.index(i)
+                        if ci==None: self.inventaire.append( [mape.mape[xx,yy],1] )
+                        else: self.inventaire[ci][1]+=1
                         mape.mape[xx,yy]=0
+            if self.isposer:
+                if len(self.inventaire)>self.esb:
+                    if emape[mape.mape[xx,yy]][1]==2:
+                        mape.mape[xx,yy]=self.inventaire[self.esb][0]
+                        self.inventaire[self.esb][1]-=1
+                        if self.inventaire[self.esb][1]<=0:
+                            del(self.inventaire[self.esb])
                         
                         
                         
@@ -183,15 +198,29 @@ def verif_keys(perso):
 
 def aff(perso,mape,fps):
     fenetre.fill( mape.clciel )
+    #personnage
     pygame.draw.rect( fenetre , (255,255,255) , (perso.cam[0]+perso.px,perso.cam[1]+perso.py,perso.tx,perso.ty) , 0)
+    #mape
     for x in range( int((-perso.cam[0])/mape.tc)-1 , int((-perso.cam[0]+tex)/mape.tc)+1 ):
         for y in range( int((-perso.cam[1])/mape.tc)-1 , int((-perso.cam[1]+tey)/mape.tc)+1 ):
             if x>=0 and x<mape.mtx and y>=0 and y<mape.mty:
                 if emape[mape.mape[x,y]][2][emape[mape.mape[x,y]][4]]!=None:
                     fenetre.blit( emape[mape.mape[x,y]][2][emape[mape.mape[x,y]][4]] , [perso.cam[0]+x*mape.tc,perso.cam[1]+y*mape.tc])
+    #animation de destruction d'un bloc
     if perso.isaction and (time.time()-perso.debaction)<=emape[mape.mape[perso.dcaseact[0],perso.dcaseact[1]]][5]:
         nb=int((time.time()-perso.debaction)/emape[mape.mape[perso.dcaseact[0],perso.dcaseact[1]]][5]*5)
         fenetre.blit( imgsancreuser[nb] , [perso.cam[0]+perso.dcaseact[0]*mape.tc,perso.cam[1]+perso.dcaseact[1]*mape.tc])
+    #première colonne de l'inventaire affiché à l'écran , 1 colonne = 10 cases
+    xx,yy=rx(250),ry(900)
+    tcx,tcy=rx(60),ry(60)
+    for x in range(10):
+        cl,t=(0,0,0),rx(2)
+        if x==perso.esb: cl,t=(150,150,150),t
+        if len(perso.inventaire)>x and emape[perso.inventaire[x][0]][2][0]!=None:
+            fenetre.blit( pygame.transform.scale( emape[perso.inventaire[x][0]][2][0] , [tcx-t*2,tcy-t*2] ) , [xx+t,yy+t])
+        pygame.draw.rect(fenetre,cl,(xx,yy,tcx,tcy),t)
+        xx+=tcx+t
+    #textes affiché à l'écran ( sert surtout à débugger )
     fenetre.blit( font.render("fps="+str(fps),True,(255,255,255)), [rx(15),ry(15)])
     fenetre.blit( font.render("x="+str(int(perso.px)),True,(255,255,255)), [rx(15),ry(35)])
     fenetre.blit( font.render("y="+str(int(perso.py)),True,(255,255,255)), [rx(15),ry(55)])
@@ -202,7 +231,7 @@ def aff(perso,mape,fps):
 
 def main():
     mape=Mape()
-    perso=Perso(1000,4200)
+    perso=Perso(1000,4600)
     fps=0
     encour=True
     while encour:
