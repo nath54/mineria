@@ -315,7 +315,7 @@ def main():
         tt=time.time()-t1
         if tt!=0: fps=int(1./tt)
 
-rb0=(rx(500),ry(400),rx(300),ry(50))
+rb0=pygame.Rect(rx(500),ry(400),rx(300),ry(50))
 def affmenu(fps,pos,men):
     bts=[]
     for x in range(10): bts.append(None)
@@ -335,7 +335,7 @@ def menu():
     while encourm:
         t1=time.time()
         pos=pygame.mouse.get_pos()
-        bts=affmenu(pos,fps,men)
+        bts=affmenu(fps,pos,men)
         for event in pygame.event.get():
             if event.type==QUIT: exit()
             elif event.type==KEYDOWN:
