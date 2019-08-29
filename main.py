@@ -16,7 +16,11 @@ def ryy(y): return float(y/btey*tey)
 
 fenetre=pygame.display.set_mode([tex,tey],pygame.FULLSCREEN)
 pygame.display.set_caption("Mineria v2")
-font=pygame.font.SysFont("Arial",rx(20))
+font=pygame.font.Font("fonts/ns.ttf",rx(20))
+font2=pygame.font.Font("fonts/ns.ttf",rx(25))
+font3=pygame.font.Font("fonts/ns.ttf",rx(30))
+font4=pygame.font.Font("fonts/ns.ttf",rx(40))
+
 
 tc=rx(50)
 
@@ -41,6 +45,7 @@ class Perso:
         self.tx=tc*1
         self.ty=tc*1.5
         self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
+        self.respawn=[self.px,self.py]
         #movement
         self.vitx=0.
         self.vity=0.
@@ -56,7 +61,8 @@ class Perso:
         self.kdown=K_DOWN
         self.kleft=K_LEFT
         self.kright=K_RIGHT
-        self.kjump=K_SPACE
+        self.kjump=K_KP0
+        self.krespawn=K_r
         #time
         self.t=0.01
         self.tj=1
@@ -66,6 +72,12 @@ class Perso:
         self.dkleft=time.time()
         self.dkright=time.time()
         self.dkjump=time.time()
+        self.dsprint=time.time()
+        self.tsprint=1.5
+        self.drempener=time.time()
+        self.trempener=0.03
+        self.dutilener=time.time()
+        self.tutilener=0.01
         #camera
         self.cam=[-self.px+tex/2,-self.py+tey/2]
         #actions
@@ -77,18 +89,12 @@ class Perso:
         #inventaire
         self.inventaire=[] # pour chaque élément : 0=l'id de l'élément , 1=le nombre de bloc de cet élément possédé
         self.esb=0
-        #vie_endurance
+        #vie/endurance
         self.vie_tot=500
         self.vie=self.vie_tot
         self.energie_tot=500
         self.energie=self.energie_tot
         self.issprint=False
-        self.dsprint=time.time()
-        self.tsprint=1.5
-        self.drempener=time.time()
-        self.trempener=0.03
-        self.dutilener=time.time()
-        self.tutilener=0.01
     def bouger(self,aa):
         vitmax=self.vitmax
         if self.issprint: vitmax=self.vitmax*2
@@ -155,23 +161,24 @@ class Perso:
                                     self.vity=0.
                                     self.nbjump=self.nbjump_tot
                                     self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
-                                elif self.py<my+mty and self.py+self.ty>my+mty:
-                                    self.py+=(my+mty)-self.py
-                                    self.vity=0
-                                    self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
-                                if self.px<mx+mtx and self.px+self.tx>mx+mtx:
-                                    self.px+=(mx+mtx)-self.px
-                                    self.vitx=0.
-                                    self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
-                                elif self.px+self.tx>mx and self.px <mx:
-                                    self.px-=(self.px+self.tx)-mx
-                                    self.vitx=0.
-                                    self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
+                                else:
+                                    if self.px<mx+mtx and self.px+self.tx>mx+mtx:
+                                        self.px+=(mx+mtx)-self.px
+                                        self.vitx=0.
+                                        self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
+                                    elif self.px+self.tx>mx and self.px <mx:
+                                        self.px-=(self.px+self.tx)-mx
+                                        self.vitx=0.
+                                        self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
+                                    elif self.py<my+mty and self.py+self.ty>my+mty:
+                                        self.py+=(my+mty)-self.py
+                                        self.vity=0
+                                        self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
                                 self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
             if self.px<0: self.px=0
-            elif self.px>mape.mtx*mape.tc: self.px>mape.mtx*mape.tc
+            elif self.px>mape.mtx*mape.tc-self.tx: self.px=mape.mtx*mape.tc-self.tx
             if self.py<0: self.py=0
-            elif self.py>mape.mty*mape.tc: self.py>mape.mty*mape.tc
+            elif self.py>mape.mty*mape.tc-self.ty: self.py=mape.mty*mape.tc-self.ty
             #camera
             self.cam=[-self.px+tex/2,-self.py+tey/2]
             #actions
@@ -192,7 +199,7 @@ class Perso:
                         mape.mape[xx,yy]=0
             if self.isposer:
                 if len(self.inventaire)>self.esb:
-                    if emape[mape.mape[xx,yy]][1]==2:
+                    if emape[mape.mape[xx,yy]][1]==2 and not self.rect.colliderect((xx*mape.tc,yy*mape.tc,mape.tc,mape.tc)):
                         mape.mape[xx,yy]=self.inventaire[self.esb][0]
                         self.inventaire[self.esb][1]-=1
                         if self.inventaire[self.esb][1]<=0:
@@ -228,6 +235,61 @@ class Mape:
         #ciel
         self.clciel=(0,100,150)
         
+        #heure
+        self.ans=0
+        self.mois=0
+        self.semaines=0
+        self.jours=0
+        self.heures=0
+        self.minutes=0
+        self.secondes=0
+        
+        self.dupdatetps=time.time()
+        self.tupdatetps=0.01
+        
+        #grav
+        self.dupgrav=time.time()
+        self.tupgrav=0.5
+        
+    def update_tps(self):
+        if time.time()-self.dupdatetps>=self.tupdatetps:
+            self.dupdatetps=time.time()
+            self.secondes+=1
+            while self.secondes>=60:
+                self.secondes-=60
+                self.minutes+=1
+            while self.minutes>=60:
+                self.minutes-=60
+                self.heures+=1
+            while self.heures>=24:
+                self.heures-=24
+                self.jours+=1
+            while self.jours>7:
+                self.jours-=7
+                self.semaines+=1
+            while self.semaines>4:
+                self.semaines-=4
+                self.mois+=1
+            while self.mois>12:
+                self.mois-=12
+                self.ans+=1
+
+    def update_grav(self,perso):
+        if time.time()-self.dupgrav>=self.tupgrav:
+            self.dupgrav=time.time()
+            tt=15
+            for x in range( int(perso.px/tc)-tt , int(perso.px/tc)+tt ):
+                for y in range( int(perso.py/tc)-tt , int(perso.py/tc)+tt ):
+                    if x>=0 and x < self.mtx and y>=0 and y<self.mty:
+                        m=self.mape[x,y]
+                        if emape[m][3] and emape[self.mape[x,y+1]][1]==2 and not perso.rect.colliderect(x*self.tc,(y+1)*self.tc,self.tc,self.tc):
+                            self.mape[x,y+1]=self.mape[x,y]
+                            self.mape[x,y]=0
+                    
+            
+            
+            
+
 def verif_keys(perso):
     keys=pygame.key.get_pressed()
     if keys[perso.kup]: perso.bouger("Up")
@@ -239,6 +301,7 @@ def verif_keys(perso):
 
 def aff(perso,mape,fps):
     fenetre.fill( mape.clciel )
+    pos=pygame.mouse.get_pos()
     #personnage
     pygame.draw.rect( fenetre , (255,255,255) , (perso.cam[0]+perso.px,perso.cam[1]+perso.py,perso.tx,perso.ty) , 0)
     #mape
@@ -252,13 +315,15 @@ def aff(perso,mape,fps):
         nb=int((time.time()-perso.debaction)/emape[mape.mape[perso.dcaseact[0],perso.dcaseact[1]]][5]*5)
         fenetre.blit( imgsancreuser[nb] , [perso.cam[0]+perso.dcaseact[0]*mape.tc,perso.cam[1]+perso.dcaseact[1]*mape.tc])
     #première colonne de l'inventaire affiché à l'écran , 1 colonne = 10 cases
-    xx,yy=rx(250),ry(900)
-    tcx,tcy=rx(60),ry(60)
+    xx,yy=rx(220),ry(900)
+    tcx,tcy=rx(80),ry(80)
     for x in range(10):
         cl,t=(0,0,0),rx(2)
         if x==perso.esb: cl,t=(150,150,150),t
         if len(perso.inventaire)>x and emape[perso.inventaire[x][0]][2][0]!=None:
             fenetre.blit( pygame.transform.scale( emape[perso.inventaire[x][0]][2][0] , [tcx-t*2,tcy-t*2] ) , [xx+t,yy+t])
+            sfx,sfy=font.size(str(perso.inventaire[x][1]))
+            fenetre.blit( font.render(str(perso.inventaire[x][1]),True,(255,255,255)) , [xx+tcx-sfx-t,yy+tcy-sfy-t])
         pygame.draw.rect(fenetre,cl,(xx,yy,tcx,tcy),t)
         xx+=tcx+t
     #barres  vie et énergie
@@ -272,12 +337,18 @@ def aff(perso,mape,fps):
     fenetre.blit( font.render("y="+str(int(perso.py)),True,(255,255,255)), [rx(15),ry(55)])
     fenetre.blit( font.render("vitx="+str(perso.vitx)[:5],True,(255,255,255)), [rx(15),ry(75)])
     fenetre.blit( font.render("vity="+str(perso.vity)[:5],True,(255,255,255)), [rx(15),ry(95)])
+    #temps
+    fenetre.blit( font.render(str(mape.heures)+"h "+str(mape.minutes)+"m "+str(mape.secondes)+"s",True,(255,255,255)) , [rx(1100),ry(10)])
     pygame.display.update()
 
 
 def main():
+    mode=1
     mape=Mape()
     perso=Perso(1000,4600)
+    if mode==1:
+        for em in emape:
+            if em[7]: perso.inventaire.append( [emape.index(em),999] )
     fps=0
     encour=True
     while encour:
@@ -286,14 +357,19 @@ def main():
         aff(perso,mape,fps)
         perso=verif_keys(perso)
         perso.update(mape)
+        mape.update_tps()
+        mape.update_grav(perso)
         #events
         for event in pygame.event.get():
             if event.type==QUIT: exit()
             elif event.type==KEYDOWN:
                 if event.key==K_ESCAPE: encour=False
-                if event.key == K_RSHIFT:
+                elif event.key == K_RSHIFT:
                     if perso.energie>0: perso.issprint=True
                     perso.dsprint=time.time()
+                elif event.key==perso.krespawn:
+                    perso.px=perso.respawn[0]
+                    perso.py=perso.respawn[1]
             elif event.type==KEYUP:
                 if event.key == K_RSHIFT:
                     perso.issprint=False
@@ -303,10 +379,10 @@ def main():
                 if event.button==3: perso.isposer=True
                 if event.button==5:
                     perso.esb-=1
-                    if perso.esb==-1: perso.esb=10
+                    if perso.esb==-1: perso.esb=9
                 if event.button==4:
                     perso.esb+=1
-                    if perso.esb==11: perso.esb=0
+                    if perso.esb==10: perso.esb=0
             elif event.type==MOUSEBUTTONUP:
                 if event.button==1:
                     perso.isaction=False
@@ -314,6 +390,7 @@ def main():
                 if event.button==3: perso.isposer=False
         tt=time.time()-t1
         if tt!=0: fps=int(1./tt)
+
 
 rb0=pygame.Rect(rx(500),ry(400),rx(300),ry(50))
 def affmenu(fps,pos,men):
