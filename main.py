@@ -315,5 +315,37 @@ def main():
         tt=time.time()-t1
         if tt!=0: fps=int(1./tt)
 
-main()
+rb0=(rx(500),ry(400),rx(300),ry(50))
+def affmenu(fps,pos,men):
+    bts=[]
+    for x in range(10): bts.append(None)
+    fenetre.fill((0,0,0))
+    if men==0:
+        cl=(200,200,20)
+        if rb0.collidepoint(pos): cl=(150,150,20)
+        bts[0]=pygame.draw.rect( fenetre,cl , rb0 , 0)
+        fenetre.blit( font.render("Play",True,(0,0,0)) , [rx(550),ry(410)])
+    pygame.display.update()
+    return bts
 
+def menu():
+    men=0
+    encourm=True
+    fps=0
+    while encourm:
+        t1=time.time()
+        pos=pygame.mouse.get_pos()
+        bts=affmenu(pos,fps,men)
+        for event in pygame.event.get():
+            if event.type==QUIT: exit()
+            elif event.type==KEYDOWN:
+                if event.key==K_ESCAPE: encourm=False
+            elif event.type==MOUSEBUTTONUP:
+                for b in bts:
+                    if b!=None and b.collidepoint(pos):
+                        di=bts.index(b)
+                        if di==0: main()
+        tt=time.time()-t1
+        if tt!=0: fps=int(1./tt)
+
+menu()
