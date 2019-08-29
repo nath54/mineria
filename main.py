@@ -15,7 +15,7 @@ def rxx(x): return float(x/btex*tex)
 def ryy(y): return float(y/btey*tey)
 
 fenetre=pygame.display.set_mode([tex,tey],pygame.FULLSCREEN)
-pygame.display.set_caption("Mineria v2")
+pygame.display.set_caption("Mineria")
 font=pygame.font.Font("fonts/ns.ttf",rx(20))
 font2=pygame.font.Font("fonts/ns.ttf",rx(25))
 font3=pygame.font.Font("fonts/ns.ttf",rx(30))
@@ -191,6 +191,7 @@ class Perso:
                         self.debaction=time.time()
                         self.dcaseact=[xx,yy]
                     elif time.time()-self.debaction>=emape[mape.mape[xx,yy]][5]:
+                        self.debaction=time.time()
                         ci=None
                         for i in self.inventaire:
                             if i[0]==mape.mape[xx,yy]: ci=self.inventaire.index(i)
