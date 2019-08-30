@@ -484,7 +484,9 @@ def main():
                             else:
                                 dcinv=True
                                 dcinv_case=di
-                            
+        #cond mort
+        if perso.vie<=0: encour=False
+        #calc fps   
         tt=time.time()-t1
         if tt!=0: fps=int(1./tt)
 
