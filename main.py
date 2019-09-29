@@ -21,7 +21,6 @@ font2=pygame.font.Font("fonts/ns.ttf",rx(25))
 font3=pygame.font.Font("fonts/ns.ttf",rx(30))
 font4=pygame.font.Font("fonts/ns.ttf",rx(40))
 
-
 tc=rx(50)
 
 x=0
@@ -36,6 +35,8 @@ for m in emape:
 
 imgsancreuser=["anim_c1.png","anim_c2.png","anim_c3.png","anim_c4.png","anim_c5.png"]
 for x in range(len(imgsancreuser)): imgsancreuser[x]=pygame.transform.scale( pygame.image.load(dimg+imgsancreuser[x]) , [tc,tc])
+
+degvity=[[10,5],[20,10],[30,30],[40,50],[50,70],[60,85],[70,100]]
 
 class Perso:
     def __init__(self,x,y):
@@ -57,6 +58,7 @@ class Perso:
         self.nbjump_tot=1
         self.nbjump=self.nbjump_tot
         self.toucheeau=False
+        self.needgrav=True
         #keys
         self.kup=K_UP
         self.kdown=K_DOWN
@@ -80,6 +82,8 @@ class Perso:
         self.trempener=0.03
         self.dutilener=time.time()
         self.tutilener=0.01
+        self.dregen_vie=time.time()
+        self.tregen_vie=0.1
         #camera
         self.cam=[-self.px+tex/2,-self.py+tey/2]
         #actions
@@ -102,19 +106,24 @@ class Perso:
         if self.issprint: vitmax=self.vitmax*2
         if aa=="Up" and time.time()-self.dkup>=self.t:
             self.dkup=time.time()
+            self.needgrav=True
         elif aa=="Down" and time.time()-self.dkdown>=self.t:
             self.dkdown=time.time()
             self.vity+=self.acc
+            self.needgrav=True
         elif aa=="Left" and time.time()-self.dkleft>=self.t:
             self.dkleft=time.time()
             if self.vitx>-vitmax: self.vitx-=self.acc
+            self.needgrav=True
         elif aa=="Right" and time.time()-self.dkright>=self.t:
             self.dkright=time.time()
             if self.vitx<vitmax: self.vitx+=self.acc
+            self.needgrav=True
         elif aa=="Jump" and time.time()-self.dkjump>=self.tj and self.nbjump>0:
             self.dkjump=time.time()
             self.vity-=self.accjump
             self.nbjump-=1
+            self.needgrav=True
     def update(self,mape):
         if time.time()-self.dbg>=self.t:
             self.dbg=time.time()
@@ -143,15 +152,17 @@ class Perso:
             elif self.vitx>0: self.vitx=0.
             elif self.vitx<0 and self.vitx<-self.decc: self.vitx+=self.decc
             elif self.vitx<0: self.vitx=0.
-            grav=self.grav
-            if self.toucheeau: grav=self.grav/4
-            self.vity+=grav
+            if self.needgrav:
+                grav=self.grav
+                if self.toucheeau: grav=self.grav/4
+                self.vity+=grav
             #mouvement
             self.px+=self.vitx
             self.py+=self.vity
             self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
             #collisions
             self.toucheeau=False
+            self.touchedur=False
             for x in range( int(self.px/mape.tc) - 3 , int(self.px/mape.tc) + 3 ):
                 for y in range( int(self.py/mape.tc) - 3 , int(self.py/mape.tc) + 3 ):
                     if x>=0 and x<mape.mtx and y>=0 and y<mape.mty:
@@ -161,12 +172,16 @@ class Perso:
                         mtx,mty=mape.tc,mape.tc
                         if emape[m][1]==0: 
                             if self.rect.colliderect( (mx,my,mtx,mty) ):
+                                self.touchedur=True
                                 if self.py+self.ty/1.5<my and self.py<my:
                                     self.py+=my-(self.py+self.ty)
-                                    if self.vity>10: self.vie-=self.vity
+                                    for d in degvity:
+                                        if degvity.index(d) >= 1 and self.vity < d[0] and self.vity > degvity[degvity.index(d)-1][0]:
+                                            self.vie-=d[1]
                                     self.vity=0.
                                     self.dkjump=0
                                     self.nbjump=self.nbjump_tot
+                                    self.needgrav=False
                                     self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
                                 else:
                                     if self.px<mx+mtx and self.px+self.tx>mx+mtx:
@@ -183,12 +198,17 @@ class Perso:
                                         self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
                                 self.rect=pygame.Rect(self.px,self.py,self.tx,self.ty)
                         elif emape[m][1]==1 and self.rect.colliderect( (mx,my,mtx,mty) ):
+                            if m==25 and time.time()-self.dregen_vie>=self.tregen_vie:
+                                self.dregen_vie=time.time()
+                                self.vie+=1
+                                if self.vie>self.vie_tot: self.vie=self.vie_tot
                             self.nbjump=self.nbjump_tot
                             self.toucheeau=True
             if self.px<0: self.px=0
             elif self.px>mape.mtx*mape.tc-self.tx: self.px=mape.mtx*mape.tc-self.tx
             if self.py<0: self.py=0
             elif self.py>mape.mty*mape.tc-self.ty: self.py=mape.mty*mape.tc-self.ty
+            if not self.touchedur: self.needgrav=True
             #camera
             self.cam=[-self.px+tex/2,-self.py+tey/2]
             #actions
@@ -210,7 +230,7 @@ class Perso:
                         mape.mape[xx,yy]=0
             if self.isposer:
                 if len(self.inventaire)>self.esb:
-                    if emape[mape.mape[xx,yy]][1]==2 and not self.rect.colliderect((xx*mape.tc,yy*mape.tc,mape.tc,mape.tc)) and emape[self.inventaire[self.esb][0]][6]:
+                    if emape[mape.mape[xx,yy]][1] in [1,2] and not self.rect.colliderect((xx*mape.tc,yy*mape.tc,mape.tc,mape.tc)) and emape[self.inventaire[self.esb][0]][6]:
                         mape.mape[xx,yy]=self.inventaire[self.esb][0]
                         self.inventaire[self.esb][1]-=1
                         if self.inventaire[self.esb][1]<=0:
@@ -262,8 +282,24 @@ class Mape:
             return mape
         
         for x in range(self.mtx):
-            cmy=[-1,0,1]
-            for w in range(10): cmy.append(self.dyc)
+            cmy=[]
+            for w in range(0):
+                cmy.append(-5)
+                cmy.append(5)
+            for w in range(0):
+                cmy.append(-4)
+                cmy.append(3)
+            for w in range(0):
+                cmy.append(-3)
+                cmy.append(3)
+            for w in range(1):
+                cmy.append(-2)
+                cmy.append(2)
+            for w in range(20):
+                cmy.append(-1)
+                cmy.append(1)
+            for w in range(20): cmy.append(0)
+            for w in range(40): cmy.append(self.dyc)
             self.dyc=random.choice(cmy)
             self.yb+=self.dyc
             cmt=[-1,0,1]
@@ -274,7 +310,8 @@ class Mape:
             self.mape=ccm(self.mape,x,self.yb)
             if x==int(self.mtx/2):
                 self.spawn=[x*self.tc,(self.yb-3)*self.tc]
-            elif random.randint(0,100)==1: self.mape=carbre(self.mape,x,self.yb)
+            elif self.yb>=1200 and random.randint(0,50)==1: self.mape[x,yb-random.randint(0,3)]=6
+            elif random.randint(0,80)==1: self.mape=carbre(self.mape,x,self.yb)
         #ciel
         self.clciel=(0,100,150)
         
@@ -331,8 +368,14 @@ class Mape:
                                 self.mape[x,y]=0
                         if emape[m][1]==1:
                             if emape[self.mape[x,y+1]][1]==2: self.mape[x,y+1]=self.mape[x,y]
-                            if x<self.mtx-1 and emape[self.mape[x+1,y]][1]==2: self.mape[x+1,y]=self.mape[x,y]
-                            if x>1 and emape[self.mape[x-1,y]][1]==2: self.mape[x-1,y]=self.mape[x,y]
+                            elif emape[self.mape[x,y+1]][1]==0:
+                                if x<self.mtx-1 and emape[self.mape[x+1,y]][1]==2: self.mape[x+1,y]=self.mape[x,y]
+                                if x>1 and emape[self.mape[x-1,y]][1]==2: self.mape[x-1,y]=self.mape[x,y]   
+                            """
+                            if emape[self.mape[x,y+1]][1]==2: self.mape[x,y+1]=self.mape[x,y]
+                            if x<self.mtx-1 and emape[self.mape[x+1,y+1]][1]==2: self.mape[x+1,y+1]=self.mape[x,y]
+                            if x>1 and emape[self.mape[x-1,y+1]][1]==2: self.mape[x-1,y+1]=self.mape[x,y]
+                            """
 
 def verif_keys(perso):
     keys=pygame.key.get_pressed()
@@ -485,7 +528,11 @@ def main():
                                 dcinv=True
                                 dcinv_case=di
         #cond mort
-        if perso.vie<=0: encour=False
+        if perso.vie<=0:
+            perso.vie=perso.vie_tot
+            perso.px=perso.respawn[0]
+            perso.py=perso.respawn[1]
+            self.needgrav=True
         #calc fps   
         tt=time.time()-t1
         if tt!=0: fps=int(1./tt)

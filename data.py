@@ -33,8 +33,9 @@ emape.append(["planche de bois"     ,0      ,["planche_bois.png"]   ,False      
 emape.append(["rondin de bois"      ,0      ,["rondin_bois.png"]    ,False          ,0          ,0.9        ,False          ,True    ]) #20
 emape.append(["planche de pierre"   ,0      ,["planche_pierre.png"] ,False          ,0          ,0.9        ,True           ,True    ]) #21
 emape.append(["rondin de pierre"    ,0      ,["rondin_pierre.png"]  ,False          ,0          ,0.9        ,False          ,True    ]) #22
-
-
+emape.append(["sang"                ,1      ,["sang.png"]           ,True           ,0          ,1          ,True           ,True    ]) #23
+emape.append(["lave"                ,1      ,["lave.png"]           ,True           ,0          ,1          ,True           ,True    ]) #24
+emape.append(["eau regenerante"     ,1      ,["eau_regenerante.png"],True           ,0          ,1          ,True           ,True    ]) #25
 
 
 
